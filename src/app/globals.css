@@ -67,3 +67,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+.my-booked-class {
+  background-color: tomato;
+  color: white;
+  border-radius: 50%;
+}
