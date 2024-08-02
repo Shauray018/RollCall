@@ -7,7 +7,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url = env("POSTGRES_PRISMA_URL") // uses connection pooling
-  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+  directUrl = env("POSTGRES_URL_NON_POOLING")// uses a direct connection
 }
 
 model Course {
@@ -27,4 +27,12 @@ model User {
   updatedAt     DateTime  @updatedAt @map(name: "updated_at")
   courses         Course[]
   @@map(name: "users")
+}
+
+model Dates { 
+  id     Int    @id @default(autoincrement())
+  date   Int
+  month  Int 
+  year   Int 
+  color  String?
 }
