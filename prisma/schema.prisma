@@ -11,12 +11,13 @@ datasource db {
 }
 
 model Course {
-  id        String     @default(cuid()) @id
+  id        Int    @id @default(autoincrement())
   title     String
   percentage   Int?
   published Boolean @default(false)
   author    User?   @relation(fields: [authorId], references: [id])
   authorId  String?
+   date  Dates[] 
 }
 
 model User {
@@ -25,7 +26,7 @@ model User {
   email         String?   @unique
   createdAt     DateTime  @default(now()) @map(name: "created_at")
   updatedAt     DateTime  @updatedAt @map(name: "updated_at")
-  courses         Course[]
+  courses         Course[]  
   @@map(name: "users")
 }
 
@@ -35,4 +36,6 @@ model Dates {
   month  Int 
   year   Int 
   color  String?
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  Int
 }

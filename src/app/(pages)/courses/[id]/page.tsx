@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import exp from 'constants';
+import { useParams } from 'next/navigation';
 
 interface DateEntry {
   id: number;
@@ -20,16 +21,21 @@ interface DateEntry {
   month: number;
   year: number;
   color: string;
+  courseId: number; 
 }
 
-async function fetchDates(): Promise<DateEntry[]> {
-  const response = await fetch(`/api/dates`);
+async function fetchDates(courseId: string): Promise<DateEntry[]> {
+  const response = await fetch(`/api/dates?courseId=${courseId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch dates');
   }
   const data = await response.json();
-  console.log("Fetched dates:", data); // Log fetched data
-  return data;
+  if (data.success) {
+    console.log("Fetched dates:", data.dates);
+    return data.dates;
+  } else {
+    throw new Error(data.error || 'Unknown error occurred');
+  }
 }
 
 async function fetchCounts() {
@@ -74,18 +80,25 @@ export default function CalendarPage() {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [presentCount, setPresentCount] = useState(0); 
   const [absentCount, setAbsentCount] = useState(0); 
+  const [percentage, setPercentage] = useState<number>(0);
+  const [loading, setLoading] = useState(true)
+  const params = useParams();
+  const courseId = params.id as string;
 
   useEffect(() => {
-    fetchDates()
-      .then(data => {
-        if (Array.isArray(data)) {
-          setDates(data);
-        } else {
-          console.error("Expected array, received:", data);
-        }
-      })
-      .catch(err => console.error(err));
-  }, []);
+    if (courseId) {
+      fetchDates(courseId)
+        .then(data => {
+          if (Array.isArray(data)) {
+            setDates(data);
+            setLoading(false)
+          } else {
+            console.error("Expected array, received:", data);
+          }
+        })
+        .catch(err => console.error(err));
+    }
+  }, [courseId]);
 
   useEffect(() => {
     fetchCounts().then(({ greenCount, redCount }) => {
@@ -105,10 +118,22 @@ export default function CalendarPage() {
     // Update the selected dates
     setSelectedDate(newSelected);
   };
-  function getPercentage() { 
-    const percentagething = (presentCount/(presentCount+absentCount))*100; 
-    return  percentagething; 
-  }
+  
+  useEffect(() => {
+    const calculatePercentage = () => {
+      const total = presentCount + absentCount;
+      if (total === 0) {
+        setPercentage(0);
+      } else {
+        const percentagething = (presentCount / total) * 100;
+        setPercentage(percentagething);
+      }
+    };
+  
+    calculatePercentage();
+  }, [presentCount, absentCount]);
+
+
 
   function handleColorSelection(color: string) {
     if (selectedDate) {
@@ -117,6 +142,7 @@ export default function CalendarPage() {
         date: selectedDate.getDate(),
         month: selectedDate.getMonth(),
         year: selectedDate.getFullYear(),
+        courseId: Number(courseId), 
         color,
       };
       setDates(prev => [...prev, dateEntry]);
@@ -130,51 +156,59 @@ export default function CalendarPage() {
       });
     }
   }
-  
-
-
-  
 
   console.log("Dates state:", dates); // Log the dates state
 
-  return (
-    <div>
-      <h1>Attendance Calendar</h1>
-      <div> {getPercentage()}%</div>
-      <Calendar
-        mode="single"
-        selected={selectedDate}
-        onSelect={handleSelect}
-        onDayClick={handleDayClick}
-        modifiers={{
-          present: dates.filter(d => d.color === 'green').map(d => new Date(d.year, d.month, d.date)),
-          absent: dates.filter(d => d.color === 'red').map(d => new Date(d.year, d.month, d.date)),
-        }}
-        modifiersClassNames={{
-          present: "bg-green-500",
-          absent: "bg-red-500",
-        }}
-      />
-      {dropdownVisible && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">Select Status</Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuLabel>Select Status</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup>
-              <DropdownMenuRadioItem onClick={() => handleColorSelection('green')} value="present">
-                Present
-              </DropdownMenuRadioItem>
-              <DropdownMenuRadioItem onClick={() => handleColorSelection('red')} value="absent">
-                Absent
-              </DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-    </div>
-  );
+  if (loading) { 
+    return ( 
+      <div> 
+        loading... 
+        </div>
+    )
+  } else { 
+    return (
+      <div>
+        <h1>Attendance Calendar</h1>
+        <div> {percentage.toFixed(2)}%</div>
+        <div> 
+        <Calendar
+          mode="single"
+          selected={selectedDate}
+          onSelect={handleSelect}
+          onDayClick={handleDayClick}
+          modifiers={{
+            present: dates.filter(d => d.color === 'green').map(d => new Date(d.year, d.month, d.date)),
+            absent: dates.filter(d => d.color === 'red').map(d => new Date(d.year, d.month, d.date)),
+          }}
+          modifiersClassNames={{
+            present: "bg-green-500",
+            absent: "bg-red-500",
+          }}
+        />
+        {dropdownVisible && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">Select Status</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              <DropdownMenuLabel>Select Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuRadioGroup>
+                <DropdownMenuRadioItem onClick={() => handleColorSelection('green')} value="present">
+                  Present
+                </DropdownMenuRadioItem>
+                <DropdownMenuRadioItem onClick={() => handleColorSelection('red')} value="absent">
+                  Absent
+                </DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        </div>
+      </div>
+    );
+  }
+
+  
 }
 

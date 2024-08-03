@@ -3,7 +3,7 @@ import prisma from '../../../../lib/prisma';// Ensure prisma is correctly import
 
 export async function POST(request: Request) {
   try {
-    const { date, month, year, color } = await request.json();
+    const { date, month, year, color, courseId } = await request.json();
 
     if (typeof date !== 'number' || typeof month !== 'number' || typeof year !== 'number' || typeof color !== 'string') {
       throw new Error('Invalid input data');
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     } else {
       // Create a new entry if it doesn't exist
       dateEntry = await prisma.dates.create({
-        data: { date, month, year, color },
+        data: { date, month, year, color, courseId },
       });
     }
 
