@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
-import prisma from '../../../../lib/prisma';// Ensure prisma is correctly imported
+import prisma from '../../../../lib/prisma';
 
 export async function POST(request: Request) {
   try {
+    // Parse the request body
     const { date, month, year, color, courseId } = await request.json();
 
-    if (typeof date !== 'number' || typeof month !== 'number' || typeof year !== 'number' || typeof color !== 'string') {
-      throw new Error('Invalid input data');
+    // Validate input data
+    if (typeof date !== 'number' || typeof month !== 'number' || typeof year !== 'number' || typeof color !== 'string' || typeof courseId !== 'number') {
+      return NextResponse.json({ success: false, error: 'Invalid input data' }, { status: 400 });
     }
 
     // Check if the date entry already exists in the database
@@ -15,6 +17,7 @@ export async function POST(request: Request) {
         date,
         month,
         year,
+        courseId,
       },
     });
 
@@ -34,6 +37,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, data: dateEntry });
   } catch (err) {
     console.error('Error updating date color:', err);
-    return NextResponse.json({ success: false, error: err });
+    return NextResponse.json({ success: false, error: 'Failed to update date color' }, { status: 500 });
   }
 }
+
+
+// export async function DELETE(request: Request) {
+//   const { date, month, year, color, courseId } = await request.json();
+//   let dateEntry = await prisma.dates.findFirst({
+//     where: {
+//       date,
+//       month,
+//       year,
+//     },
+//   });
+
+//   await prisma.dates.delete({ 
+//     where: { id: dateEntry?.id }
+//   })
+
+// }
+// const deleteUser = await prisma.user.delete({
+//   where: {
+//     email: 'bert@prisma.io',
+//   },
+// })

@@ -1,8 +1,11 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import AnimatedCircularProgressBar from "@/components/magicui/animated-circular-progress-bar";
+import DotPattern from "@/components/magicui/dot-pattern";
+import classNames from 'classnames';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +15,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import exp from 'constants';
 import { useParams } from 'next/navigation';
+import BlurIn from '@/components/magicui/blur-in';
+import Link from 'next/link';
+import { UpdatePercentage } from '@/app/helpers/UpdatePercentage';
 
 interface DateEntry {
   id: number;
@@ -21,7 +26,15 @@ interface DateEntry {
   month: number;
   year: number;
   color: string;
-  courseId: number; 
+  courseId: number;
+}
+
+interface Course {
+  id: number;
+  title: string;
+  author: string;
+  percentage: number;
+  authorId: string;
 }
 
 async function fetchDates(courseId: string): Promise<DateEntry[]> {
@@ -30,42 +43,18 @@ async function fetchDates(courseId: string): Promise<DateEntry[]> {
     throw new Error('Failed to fetch dates');
   }
   const data = await response.json();
-  if (data.success) {
-    console.log("Fetched dates:", data.dates);
-    return data.dates;
-  } else {
-    throw new Error(data.error || 'Unknown error occurred');
-  }
+  return data.success ? data.dates : [];
 }
 
-async function fetchCounts() {
-  try {
-    // Fetch the data from the API
-    const response = await fetch('/api/dateCounts');
-
-    // Check if the response is OK
-    if (!response.ok) {
-      throw new Error('Failed to fetch counts');
-    }
-
-    // Parse the JSON data from the response
-    const data = await response.json();
-
-    // Check if the response indicates success
-    if (data.success) {
-      const { greenCount, redCount } = data;
-      return { greenCount, redCount };
-    } else {
-      throw new Error(data.error || 'Unknown error occurred');
-    }
-  } catch (error) {
-    console.error('Error fetching counts:', error);
-    return { greenCount: 0, redCount: 0 }; // Return default values in case of an error
+async function getCourseName(id: string): Promise<Course> {
+  const response = await fetch(`/api/course/${id}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch course');
   }
+  return response.json();
 }
 
-
-async function updateDateColor(dateEntry: DateEntry) {
+async function updateDateColor(dateEntry: DateEntry): Promise<{ success: boolean }> {
   const response = await fetch(`/api/updateDateColor`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -78,137 +67,181 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [dates, setDates] = useState<DateEntry[]>([]);
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [presentCount, setPresentCount] = useState(0); 
-  const [absentCount, setAbsentCount] = useState(0); 
-  const [percentage, setPercentage] = useState<number>(0);
-  const [loading, setLoading] = useState(true)
+  const [course, setCourse] = useState<Course | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const params = useParams();
   const courseId = params.id as string;
 
-  useEffect(() => {
-    if (courseId) {
-      fetchDates(courseId)
-        .then(data => {
-          if (Array.isArray(data)) {
-            setDates(data);
-            setLoading(false)
-          } else {
-            console.error("Expected array, received:", data);
-          }
-        })
-        .catch(err => console.error(err));
+  const fetchCourseData = useCallback(async () => {
+    try {
+      const [courseData, datesData] = await Promise.all([
+        getCourseName(courseId),
+        fetchDates(courseId)
+      ]);
+      console.log('Fetched course data:', courseData);
+      console.log('Fetched dates data:', datesData);
+
+      if (courseData && Array.isArray(datesData)) {
+        setCourse(courseData);
+        setDates(datesData);
+      } else {
+        throw new Error('Invalid data received');
+      }
+    } catch (err) {
+      setError('Failed to fetch data');
+      console.error('Error fetching data:', err);
+    } finally {
+      setIsInitialLoading(false);
     }
   }, [courseId]);
 
   useEffect(() => {
-    fetchCounts().then(({ greenCount, redCount }) => {
-      console.log(`Green Count: ${greenCount}`);
-      console.log(`Red Count: ${redCount}`);
-      setPresentCount(greenCount); 
-      setAbsentCount(redCount); 
-    });
-  }, []);
-  
+    fetchCourseData();
+  }, [fetchCourseData]);
 
-  function handleDayClick(date: Date) {
+  const calculatePercentage = useCallback(() => {
+    const presentCount = dates.filter(d => d.color === 'green').length;
+    const absentCount = dates.filter(d => d.color === 'red').length;
+    const total = presentCount + absentCount;
+    return total === 0 ? 0 : (presentCount / total) * 100;
+  }, [dates]);
+
+  useEffect(() => {
+    if (course && !isInitialLoading) {
+      const newPercentage = calculatePercentage();
+      console.log('Calculated new percentage:', newPercentage);
+      console.log('Current course percentage:', course.percentage);
+
+      if (Math.abs(course.percentage - newPercentage) > 0.1) {
+        setIsUpdating(true);
+        UpdatePercentage(courseId, newPercentage)
+          .then(() => {
+            setCourse(prevCourse => ({
+              ...prevCourse!,
+              percentage: newPercentage
+            }));
+            console.log('Updated course percentage:', newPercentage);
+          })
+          .catch(error => {
+            console.error('Error updating percentage:', error);
+            setError('Failed to update course percentage');
+          })
+          .finally(() => {
+            setIsUpdating(false);
+          });
+      }
+    }
+  }, [course, dates, courseId, isInitialLoading, calculatePercentage]);
+
+  const handleDayClick = (date: Date) => {
     setSelectedDate(date);
     setDropdownVisible(true);
-  }
-  const handleSelect = (newSelected : any) => {
-    // Update the selected dates
-    setSelectedDate(newSelected);
   };
-  
-  useEffect(() => {
-    const calculatePercentage = () => {
-      const total = presentCount + absentCount;
-      if (total === 0) {
-        setPercentage(0);
-      } else {
-        const percentagething = (presentCount / total) * 100;
-        setPercentage(percentagething);
-      }
-    };
-  
-    calculatePercentage();
-  }, [presentCount, absentCount]);
 
-
-
-  function handleColorSelection(color: string) {
+  const handleColorSelection = async (color: string) => {
     if (selectedDate) {
       const dateEntry: DateEntry = {
-        id: 0, // Assume this is auto-incremented in the database
+        id: 0, // The id is auto-generated or will be updated by the backend
         date: selectedDate.getDate(),
         month: selectedDate.getMonth(),
         year: selectedDate.getFullYear(),
-        courseId: Number(courseId), 
+        courseId: Number(courseId),
         color,
       };
-      setDates(prev => [...prev, dateEntry]);
-      setDropdownVisible(false);
-      updateDateColor(dateEntry).then((data) => {
-        if (data.success) {
-          console.log("Date color is updated");
+
+      try {
+        setIsUpdating(true);
+        const result = await updateDateColor(dateEntry);
+        if (result.success) {
+          setDates(prevDates => {
+            const updatedDates = [
+              ...prevDates.filter(d => 
+                d.date !== dateEntry.date || 
+                d.month !== dateEntry.month || 
+                d.year !== dateEntry.year
+              ),
+              dateEntry
+            ];
+            console.log('Updated dates:', updatedDates);
+            return updatedDates;
+          });
         } else {
-          console.error("this is messed up", data);
+          throw new Error("Failed to update date color");
         }
-      });
+      } catch (error) {
+        console.error("Error updating date color:", error);
+        setError("Failed to update date status");
+      } finally {
+        setDropdownVisible(false);
+        setIsUpdating(false);
+      }
     }
-  }
+  };
 
-  console.log("Dates state:", dates); // Log the dates state
+  if (isInitialLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!course) return <div>No course data available</div>;
 
-  if (loading) { 
-    return ( 
-      <div> 
-        loading... 
+  return (
+    <div className='flex justify-center items-center flex-col gap-8 mt-7'>
+      <BlurIn word={course.title} className="text-sm font-bold text-zinc-900 dark:text-white" />
+      <DotPattern
+        width={20}
+        height={20}
+        cx={1}
+        cy={1}
+        cr={1}
+        className={classNames("[mask-image:linear-gradient(to_bottom_right,white,transparent,transparent)]")}
+      />
+      <div className='flex justify-center flex-row gap-10 items-center'>
+        <div className='flex justify-center flex-col items-center'>
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={setSelectedDate}
+            onDayClick={handleDayClick}
+            modifiers={{
+              present: dates.filter(d => d.color === 'green').map(d => new Date(d.year, d.month, d.date)),
+              absent: dates.filter(d => d.color === 'red').map(d => new Date(d.year, d.month, d.date)),
+            }}
+            modifiersClassNames={{
+              present: "bg-green-500",
+              absent: "bg-red-500",
+            }}
+          />
+          {dropdownVisible && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">Select Status</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuLabel>Select Status</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup>
+                  <DropdownMenuRadioItem onClick={() => handleColorSelection('green')} value="present">
+                    Present
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem onClick={() => handleColorSelection('red')} value="absent">
+                    Absent
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
-    )
-  } else { 
-    return (
-      <div>
-        <h1>Attendance Calendar</h1>
-        <div> {percentage.toFixed(2)}%</div>
-        <div> 
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={handleSelect}
-          onDayClick={handleDayClick}
-          modifiers={{
-            present: dates.filter(d => d.color === 'green').map(d => new Date(d.year, d.month, d.date)),
-            absent: dates.filter(d => d.color === 'red').map(d => new Date(d.year, d.month, d.date)),
-          }}
-          modifiersClassNames={{
-            present: "bg-green-500",
-            absent: "bg-red-500",
-          }}
+        <AnimatedCircularProgressBar
+          max={100}
+          min={0}
+          value={Math.round(course.percentage)}
+          gaugePrimaryColor="rgb(24 24 27)"
+          gaugeSecondaryColor="rgba(0, 0, 0, 0.1)"
         />
-        {dropdownVisible && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">Select Status</Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              <DropdownMenuLabel>Select Status</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuRadioGroup>
-                <DropdownMenuRadioItem onClick={() => handleColorSelection('green')} value="present">
-                  Present
-                </DropdownMenuRadioItem>
-                <DropdownMenuRadioItem onClick={() => handleColorSelection('red')} value="absent">
-                  Absent
-                </DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-        </div>
       </div>
-    );
-  }
-
-  
+      <Link href="/dashboard">
+        <Button>Go Back</Button>
+      </Link>
+    </div>
+  );
 }
-

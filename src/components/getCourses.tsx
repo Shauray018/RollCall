@@ -1,22 +1,18 @@
 "use server"
 
-import prisma from '../../lib/prisma' // Adjust the import path as needed
 
-export default async function getCourses() {
+import prisma from "../../lib/prisma";
+
+export default async function getCourses(id: string) {
     try {
         const courses = await prisma.course.findMany({
-            include: {
-                author: {
-                    select: {
-                        name: true,
-                        email: true
-                    }
-                }
-            }
-        })
-        return courses
+            where: {
+                authorId: id,
+            },
+        });
+        return courses;
     } catch (error) {
-        console.error('Failed to fetch courses:', error)
-        throw new Error('Failed to fetch courses')
+        console.error('Failed to fetch courses:', error);
+        throw new Error('Failed to fetch courses');
     }
 }
