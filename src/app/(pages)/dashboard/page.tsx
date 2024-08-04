@@ -4,7 +4,7 @@ import getCourses from "@/components/getCourses"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { MagicCard } from "@/components/magicui/magic-card";
-import NumberTicker from "@/components/magicui/number-ticker";
+// import NumberTicker from "@/components/magicui/number-ticker";
 import BoxReveal from "@/components/magicui/box-reveal";
 import SparklesText from "@/components/magicui/sparkles-text"
 import Meteors from "@/components/magicui/meteors"
@@ -85,10 +85,10 @@ export default function Dashboard() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {courses.map(course => (
-            <Link href={`/courses/${course.id}`} >
+            <Link href={`/courses/${course.id}`} key={course.id} >
             
             <MagicCard
-            key={course.id}
+            
             className="cursor-pointer flex-col items-center justify-center shadow-2xl whitespace-nowrap text-xl text-zinc-800"
             
             gradientColor={"#D9D9D955"}
@@ -96,7 +96,7 @@ export default function Dashboard() {
             <BoxReveal boxColor={"#000000"} duration={0.5}>
             <div className="flex m-5 justify-stretch">
               <div className="mr-5 font-bold">{course.title}</div>
-              <NumberTicker value={Number(course.percentage) } />
+              {Number(course.percentage) }
               <span>%</span>
             </div>
             </BoxReveal>
