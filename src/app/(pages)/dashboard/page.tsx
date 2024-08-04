@@ -1,10 +1,13 @@
 "use client"
-
 import { useState, useEffect, useCallback, useRef } from "react"
 import getCourses from "@/components/getCourses"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-// import { Input } from "@/components/ui/input"
+import { MagicCard } from "@/components/magicui/magic-card";
+import NumberTicker from "@/components/magicui/number-ticker";
+import BoxReveal from "@/components/magicui/box-reveal";
+import SparklesText from "@/components/magicui/sparkles-text"
+import Meteors from "@/components/magicui/meteors"
 
 interface Course {
   id: number;
@@ -68,20 +71,38 @@ export default function Dashboard() {
     }
   }
 
-  if (isLoading) return <div>Loading...</div>
+  if (isLoading) return (<div>
+    <Meteors number={30} /> 
+                    
+                    </div>
+    )
   if (error) return <div>Error: {error}</div>
 
   return (
+    
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Courses</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      <SparklesText text="Courses" className="mb-10 text-zinc-800 "/>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {courses.map(course => (
-          <div key={course.id} className="border p-4 rounded-lg">
-            <Link href={`/courses/${course.id}`} className="text-lg font-semibold hover:underline">
-              {course.title}
-            </Link>
-            <p>Percentage: {course.percentage ?? 'N/A'}</p>
-          </div>
+            <Link href={`/courses/${course.id}`} >
+            
+            <MagicCard
+            key={course.id}
+            className="cursor-pointer flex-col items-center justify-center shadow-2xl whitespace-nowrap text-xl text-zinc-800"
+            
+            gradientColor={"#D9D9D955"}
+          >
+            <BoxReveal boxColor={"#000000"} duration={0.5}>
+            <div className="flex m-5 justify-stretch">
+              <div className="mr-5 font-bold">{course.title}</div>
+              <NumberTicker value={Number(course.percentage) } />
+              <span>%</span>
+            </div>
+            </BoxReveal>
+          </MagicCard>
+         
+          </Link>
         ))}
       </div>
       <h2 className="text-xl font-semibold mb-4">Add New Course</h2>
