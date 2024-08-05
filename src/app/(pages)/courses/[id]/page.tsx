@@ -19,6 +19,7 @@ import { useParams } from 'next/navigation';
 import BlurIn from '@/components/magicui/blur-in';
 import Link from 'next/link';
 import { UpdatePercentage } from '@/app/helpers/UpdatePercentage';
+import Meteors from '@/components/magicui/meteors';
 
 interface DateEntry {
   id: number;
@@ -180,12 +181,12 @@ export default function CalendarPage() {
     }
   };
 
-  if (isInitialLoading) return <div>Loading...</div>;
+  if (isInitialLoading) return <div> <Meteors number={30} /></div>;
   if (error) return <div>Error: {error}</div>;
   if (!course) return <div>No course data available</div>;
 
   return (
-    <div className='flex justify-center items-center flex-col gap-8 mt-7'>
+    <div className='flex justify-center items-center md:flex-col gap-8 mt-7  sm:flex flex-row-1'>
       <BlurIn word={course.title} className="text-sm font-bold text-zinc-900 dark:text-white" />
       <DotPattern
         width={20}
@@ -195,7 +196,7 @@ export default function CalendarPage() {
         cr={1}
         className={classNames("[mask-image:linear-gradient(to_bottom_right,white,transparent,transparent)]")}
       />
-      <div className='flex justify-center flex-row gap-10 items-center'>
+      <div className='flex justify-center flex-row gap-10 items-center sm:flex-row-1'>
         <div className='flex justify-center flex-col items-center'>
           <Calendar
             mode="single"
