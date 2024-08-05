@@ -186,8 +186,8 @@ export default function CalendarPage() {
   if (!course) return <div>No course data available</div>;
 
   return (
-    <div className='flex justify-center items-center md:flex-col gap-8 mt-7  sm:flex flex-row-1'>
-      <BlurIn word={course.title} className="text-sm font-bold text-zinc-900 dark:text-white" />
+    <div className='flex justify-center items-center flex-col gap-8 mt-7  '>
+      <BlurIn word={course.title} className=" font-bold text-zinc-900 dark:text-white" />
       <DotPattern
         width={20}
         height={20}
@@ -197,7 +197,7 @@ export default function CalendarPage() {
         className={classNames("[mask-image:linear-gradient(to_bottom_right,white,transparent,transparent)]")}
       />
       <div className='flex justify-center flex-row gap-10 items-center sm:flex-row-1'>
-        <div className='flex justify-center flex-col items-center'>
+        <div className='flex justify-center flex-col items-center sm:flex-col-1'>
           <Calendar
             mode="single"
             selected={selectedDate}
