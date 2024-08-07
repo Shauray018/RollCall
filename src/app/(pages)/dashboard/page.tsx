@@ -4,10 +4,11 @@ import getCourses from "@/components/getCourses"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { MagicCard } from "@/components/magicui/magic-card";
-// import NumberTicker from "@/components/magicui/number-ticker";
+// import NumberTicker from "@/components/magicui/number-ticker";   
 import BoxReveal from "@/components/magicui/box-reveal";
 import SparklesText from "@/components/magicui/sparkles-text"
 import Meteors from "@/components/magicui/meteors"
+import { useUser } from "@clerk/nextjs";
 
 interface Course {
   id: number;
@@ -23,10 +24,13 @@ export default function Dashboard() {
   const [error, setError] = useState("")
   const [showMessage, setShowMessage] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
+  const { user, isLoaded } = useUser();
 
   const fetchCourses = useCallback(async () => {
+    if (!isLoaded || !user) return;
+    
     try {
-      const coursesData = await getCourses("1"); // Replace "1" with the actual author ID or obtain it dynamically
+      const coursesData = await getCourses(user.id);
       setCourses(coursesData);
     } catch (err) {
       setError('Failed to fetch courses');
@@ -34,11 +38,12 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [])
+  }, [user, isLoaded])
 
   useEffect(() => {
     fetchCourses()
   }, [fetchCourses])
+
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -46,7 +51,6 @@ export default function Dashboard() {
 
     const formData = new FormData(formRef.current)
     const title = formData.get('title') as string
-    const authorId = formData.get('authorId') as string
 
     try {
       const response = await fetch('/api/courses', {
@@ -54,7 +58,7 @@ export default function Dashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ title, authorId }),
+        body: JSON.stringify({ title }), 
       })
 
       if (!response.ok) {
@@ -65,12 +69,19 @@ export default function Dashboard() {
       setCourses(prevCourses => [...prevCourses, newCourse])
       formRef.current.reset() // Clear the form
       setError('') // Clear any previous errors
+      setShowMessage(true) // Show a success message
     } catch (err) {
       console.error('Failed to create course:', err)
       setError('Failed to create course')
     }
   }
+  if (!isLoaded) {
+    return <div>Loading user data...</div>;
+  }
 
+  if (!user) {
+    return <div>Please sign in to view your dashboard.</div>;
+  }
   if (isLoading) return (<div>
     <Meteors number={30} /> 
                     
@@ -108,7 +119,7 @@ export default function Dashboard() {
       <h2 className="text-xl font-semibold mb-4">Add New Course</h2>
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
         <input name="title" type="text" placeholder="Course Title" required />
-        <input name="authorId" type="text" placeholder="Author ID" required />
+        {/* <input name="authorId" type="text" placeholder="Author ID" required /> */}
         <Button type="submit">Add Course</Button>
       </form>
       {error && <div className="text-red-500 mt-2">{error}</div>}

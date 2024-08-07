@@ -1,40 +1,59 @@
-import prisma from "../../../../lib/prisma";
-import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { NextResponse , NextRequest} from "next/server";
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export async function GET() {
-    try {
-        const courses = await prisma.course.findMany();
-        return NextResponse.json(courses);
-    } catch (error) {
-        console.error('Failed to fetch courses:', error);
-        return NextResponse.json({ error: "I can't fetch courses for some reason" }, { status: 500 });
-    }
+  const { userId } = auth();
+
+  if (!userId) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  try {
+    const courses = await prisma.course.findMany({
+      where: {
+        authorId: userId,
+      },
+    });
+    return NextResponse.json(courses);
+  } catch (error) {
+    return new NextResponse("Error fetching courses", { status: 500 });
+  }
 }
 
 interface PayloadInterface {
-    title: string;// Make percentage optional if not always required
-    authorId: string;
+    title: string;
 }
 
 export async function POST(request: NextRequest) {
-    try {
-        const data: PayloadInterface = await request.json();
-        const { title, authorId } = data; // Default percentage to 0 if not provided
+    const { userId } = auth();
 
-        // Check if the author exists
-        const authorExists = await prisma.user.findUnique({
-            where: { id: authorId }
+    if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    try {
+        const { title } = await request.json();
+
+        // Check if the user exists in your database
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
         });
 
-        if (!authorExists) {
-            return NextResponse.json({ error: 'Author not found' }, { status: 404 });
+        if (!user) {
+            // If the user doesn't exist, create them
+            await prisma.user.create({
+                data: { id: userId }
+            });
         }
 
         // Create new course
         const newCourse = await prisma.course.create({
             data: {
                 title, 
-                authorId,
+                authorId: userId,
                 published: false
             }
         });
