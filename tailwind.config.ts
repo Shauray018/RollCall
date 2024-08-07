@@ -62,6 +62,7 @@ const config = {
         "accordion-down": {
           from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
+          
         },
         "accordion-up": {
           from: { height: "var(--radix-accordion-content-height)" },
@@ -75,11 +76,22 @@ const config = {
             opacity: "0",
           },
         },
+        grid: {
+          "0%": { transform: "translateY(-50%)" },
+          "100%": { transform: "translateY(0)" },
+        },
+        gradient: {
+          to: {
+            backgroundPosition: "var(--bg-size) 0",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         meteor: "meteor 5s linear infinite",
+        grid: "grid 15s linear infinite",
+        gradient: "gradient 8s linear infinite",
       },
     },
   },
