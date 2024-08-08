@@ -51,6 +51,7 @@ export default function Dashboard() {
 
     const formData = new FormData(formRef.current)
     const title = formData.get('title') as string
+    // const authorId = formData.get('authorId') as string
 
     try {
       const response = await fetch('/api/courses', {
@@ -69,7 +70,6 @@ export default function Dashboard() {
       setCourses(prevCourses => [...prevCourses, newCourse])
       formRef.current.reset() // Clear the form
       setError('') // Clear any previous errors
-      setShowMessage(true) // Show a success message
     } catch (err) {
       console.error('Failed to create course:', err)
       setError('Failed to create course')
