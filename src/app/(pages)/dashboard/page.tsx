@@ -135,7 +135,7 @@ export default function Dashboard() {
         <DialogHeader>
           <DialogTitle>Add new course</DialogTitle>
           <DialogDescription>
-            Make changes to your profile here. Click save when you're done.
+            you can add new courses here for your need 
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
