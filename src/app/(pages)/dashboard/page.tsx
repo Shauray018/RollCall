@@ -9,7 +9,17 @@ import BoxReveal from "@/components/magicui/box-reveal";
 import SparklesText from "@/components/magicui/sparkles-text"
 import Meteors from "@/components/magicui/meteors"
 import { useUser } from "@clerk/nextjs";
-
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 interface Course {
   id: number;
   title: string;
@@ -116,17 +126,37 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
-      <h2 className="text-xl font-semibold mb-4">Add New Course</h2>
-      <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-        <input name="title" type="text" placeholder="Course Title" required />
-        {/* <input name="authorId" type="text" placeholder="Author ID" required /> */}
-        <Button type="submit">Add Course</Button>
-      </form>
+      
+      <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="outline">Add new Course</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]" >
+        <DialogHeader>
+          <DialogTitle>Add new course</DialogTitle>
+          <DialogDescription>
+            Make changes to your profile here. Click save when you're done.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex mb-5">
+            <div className="font-bold pr-9 pt-2" >
+              Course
+            </div>
+            <Input name="title" type="text" placeholder="Course Title" required />
+          </div>
+          <div className="flex justify-center pt-5">
+            <Button type="submit" className="">Create</Button>
+          </div>
+        </form>
+        </div>
+        <DialogFooter>
+          
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
       {error && <div className="text-red-500 mt-2">{error}</div>}
-      <Button onClick={() => setShowMessage(prev => !prev)} className="mt-4">
-        {showMessage ? 'Hide Message' : 'Show Message'}
-      </Button>
-      {showMessage && <div className="mt-2">Data message</div>}
     </div>
   )
 }
