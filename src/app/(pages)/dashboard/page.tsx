@@ -20,6 +20,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 interface Course {
   id: number;
   title: string;
@@ -106,6 +112,11 @@ export default function Dashboard() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {courses.map(course => (
+          <ContextMenu>
+            <ContextMenuTrigger>Right click</ContextMenuTrigger>
+            <ContextMenuContent>
+            <ContextMenuItem>Delete</ContextMenuItem>
+            </ContextMenuContent>
             <Link href={`/courses/${course.id}`} key={course.id} >
             
             <MagicCard
@@ -119,11 +130,13 @@ export default function Dashboard() {
               <div className="mr-5 font-bold">{course.title}</div>
               {Number(course.percentage) }
               <span>%</span>
+              
             </div>
             </BoxReveal>
           </MagicCard>
          
           </Link>
+          </ContextMenu>
         ))}
       </div>
       
