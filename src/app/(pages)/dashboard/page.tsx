@@ -26,6 +26,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
+import Router from "next/router"
 interface Course {
   id: number;
   title: string;
@@ -36,9 +37,11 @@ interface Course {
 
 export default function Dashboard() {
   const [courses, setCourses] = useState<Course[]>([])
+  const [selectedCourseId, setSelectedCourseId] = useState<number | string | null>(null);
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
   const [showMessage, setShowMessage] = useState(false)
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const formRef = useRef<HTMLFormElement>(null)
   const { user, isLoaded } = useUser();
 
@@ -60,7 +63,28 @@ export default function Dashboard() {
     fetchCourses()
   }, [fetchCourses])
 
-
+  const deletionOnClickHandler = async () => {
+    if (!selectedCourseId) return;
+  
+    try {
+      const response = await fetch(`/api/course/${selectedCourseId}`, {
+        method: 'DELETE',
+      });
+  
+      if (!response.ok) throw new Error('Failed to delete course');
+      
+      // Update the courses state to remove the deleted course
+      setCourses(prevCourses => prevCourses.filter(course => course.id !== selectedCourseId));
+      
+      setShowMessage(true);
+      setTimeout(() => setShowMessage(false), 3000);
+    } catch (error) {
+      console.error('Failed to delete course:', error);
+      setError('Failed to delete course');
+    } finally {
+      setIsConfirmingDelete(false);
+    }
+  };
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!formRef.current) return;
@@ -112,30 +136,29 @@ export default function Dashboard() {
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {courses.map(course => (
-          <ContextMenu>
-            <ContextMenuTrigger>Right click</ContextMenuTrigger>
+          <ContextMenu key={course.id}>
+            <ContextMenuTrigger asChild>
+              <Link href={`/courses/${course.id}`} passHref>
+                <MagicCard
+                  className="cursor-pointer flex-col items-center justify-center shadow-2xl whitespace-nowrap text-xl text-zinc-800"
+                  gradientColor={"#D9D9D955"}
+                >
+                  <BoxReveal boxColor={"#000000"} duration={0.5}>
+                    <div className="flex m-5 justify-stretch">
+                      <div className="mr-5 font-bold">{course.title}</div>
+                      {Number(course.percentage)}
+                      <span>%</span>
+                    </div>
+                  </BoxReveal>
+                </MagicCard>
+              </Link>
+            </ContextMenuTrigger>
             <ContextMenuContent>
-            <ContextMenuItem>Delete</ContextMenuItem>
+            <ContextMenuItem onClick={() => {
+            setSelectedCourseId(course.id);
+            setIsConfirmingDelete(true);
+            }}>Delete</ContextMenuItem>
             </ContextMenuContent>
-            <Link href={`/courses/${course.id}`} key={course.id} >
-            
-            <MagicCard
-            
-            className="cursor-pointer flex-col items-center justify-center shadow-2xl whitespace-nowrap text-xl text-zinc-800"
-            
-            gradientColor={"#D9D9D955"}
-          >
-            <BoxReveal boxColor={"#000000"} duration={0.5}>
-            <div className="flex m-5 justify-stretch">
-              <div className="mr-5 font-bold">{course.title}</div>
-              {Number(course.percentage) }
-              <span>%</span>
-              
-            </div>
-            </BoxReveal>
-          </MagicCard>
-         
-          </Link>
           </ContextMenu>
         ))}
       </div>
@@ -170,6 +193,26 @@ export default function Dashboard() {
       </DialogContent>
     </Dialog>
       {error && <div className="text-red-500 mt-2">{error}</div>}
+      <Dialog open={isConfirmingDelete} onOpenChange={setIsConfirmingDelete}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Confirm Deletion</DialogTitle>
+      <DialogDescription>
+        Are you sure you want to delete this course? This action cannot be undone.
+      </DialogDescription>
+    </DialogHeader>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setIsConfirmingDelete(false)}>Cancel</Button>
+      <Button variant="destructive" onClick={deletionOnClickHandler}>Delete</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+{showMessage && (
+  <div className="fixed bottom-5 right-5 bg-green-500 text-white p-2 rounded">
+    Course deleted successfully!
+  </div>
+)}
     </div>
   )
 }

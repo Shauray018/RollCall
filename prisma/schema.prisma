@@ -15,7 +15,7 @@ model Course {
   title     String
   percentage   Int?
   published Boolean @default(false)
-  author    User?   @relation(fields: [authorId], references: [id])
+  author    User?   @relation(fields: [authorId], references: [id], onDelete: Cascade)
   authorId  String?
    date  Dates[] 
 }
@@ -36,6 +36,6 @@ model Dates {
   month  Int 
   year   Int 
   color  String?
-  course    Course   @relation(fields: [courseId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade  )
   courseId  Int
 }
